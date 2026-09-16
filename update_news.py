@@ -17,12 +17,20 @@ def is_recent(entry):
 
 FEEDS = {
     "ISW": "https://www.understandingwar.org/rss.xml",
-    "WSJ": "https://news.google.com/rss/search?q=site:wsj.com+Ukraine&hl=uk&gl=UA&ceid=UA:uk",
-    "Bloomberg": "https://news.google.com/rss/search?q=site:bloomberg.com+Ukraine&hl=uk&gl=UA&ceid=UA:uk",
+    "WSJ": "https://feeds.content.dowjones.io/public/rss/RSSWorldNews",
+    "Bloomberg": "https://feeds.bloomberg.com/politics/news.rss",
     "The Economist": "https://news.google.com/rss/search?q=site:economist.com+Ukraine&hl=uk&gl=UA&ceid=UA:uk",
     "Financial Times": "https://news.google.com/rss/search?q=site:ft.com+Ukraine&hl=uk&gl=UA&ceid=UA:uk",
     "NYT": "https://news.google.com/rss/search?q=site:nytimes.com+Ukraine&hl=uk&gl=UA&ceid=UA:uk",
 }
+
+WAR_KEYWORDS = ["ukraine", "russia", "putin", "zelensky", "zelenskyy",
+                "kyiv", "kremlin", "moscow", "war"]
+
+
+def is_war_related(entry):
+    text = (entry.get("title", "") + " " + entry.get("summary", "")).lower()
+    return any(kw in text for kw in WAR_KEYWORDS)
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
@@ -95,7 +103,10 @@ html = html.replace("__TIMESTAMP__", datetime.utcnow().strftime("%Y-%m-%d %H:%M"
 for name, url in FEEDS.items():
     html += f"<h2>{name}</h2>\n<ul>\n"
     feed = fetch_feed(url)
-    entries = [e for e in feed.entries if is_recent(e)][:6]
+    entries = [e for e in feed.entries if is_recent(e)]
+    if name != "ISW":
+        entries = [e for e in entries if is_war_related(e)]
+    entries = entries[:6]
     if not entries:
         html += "  <li><em>немає даних цього разу</em></li>\n"
     for entry in entries:
@@ -118,5 +129,3 @@ html += "</body>\n</html>\n"
 
 with open("index.html", "w", encoding="utf-8") as f:
     f.write(html)
-
-        
