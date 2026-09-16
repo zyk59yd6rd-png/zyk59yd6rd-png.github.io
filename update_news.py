@@ -42,13 +42,15 @@ FEEDS = {
     "NYT": "https://news.google.com/rss/search?q=site:nytimes.com+Ukraine&hl=uk&gl=UA&ceid=UA:uk",
 }
 
+import re
+
 WAR_KEYWORDS = ["ukraine", "russia", "putin", "zelensky", "zelenskyy",
-                "kyiv", "kremlin", "moscow", "war"]
+                "kyiv", "kremlin", "moscow", "war", "donbas", "crimea"]
 
 
 def is_war_related(entry):
     text = (entry.get("title", "") + " " + entry.get("summary", "")).lower()
-    return any(kw in text for kw in WAR_KEYWORDS)
+    return any(re.search(rf"\b{kw}\b", text) for kw in WAR_KEYWORDS)
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
@@ -57,11 +59,18 @@ HEADERS = {
 
 
 def fetch_feed(url):
+    for headers in (HEADERS, {}):
+        try:
+            resp = requests.get(url, headers=headers, timeout=15)
+            parsed = feedparser.parse(resp.content)
+            if parsed.entries:
+                return parsed
+        except Exception:
+            continue
     try:
-        resp = requests.get(url, headers=HEADERS, timeout=15)
-        return feedparser.parse(resp.content)
-    except Exception:
         return feedparser.parse(url)
+    except Exception:
+        return feedparser.parse("")
 
 
 def translate(text):
