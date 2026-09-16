@@ -2,10 +2,28 @@ import feedparser
 import time
 import calendar
 import requests
-from deep_translator import MyMemoryTranslator
+import argostranslate.package
+import argostranslate.translate
 from datetime import datetime, timedelta, timezone
 
 CUTOFF = datetime.now(timezone.utc) - timedelta(hours=48)
+
+
+def setup_translator():
+    try:
+        argostranslate.package.update_package_index()
+        available = argostranslate.package.get_available_packages()
+        package = next(
+            (p for p in available if p.from_code == "en" and p.to_code == "uk"),
+            None
+        )
+        if package:
+            argostranslate.package.install_from_path(package.download())
+    except Exception:
+        pass
+
+
+setup_translator()
 
 
 def is_recent(entry):
@@ -48,7 +66,7 @@ def fetch_feed(url):
 
 def translate(text):
     try:
-        return MyMemoryTranslator(source="en", target="uk").translate(text)
+        return argostranslate.translate.translate(text, "en", "uk")
     except Exception:
         return text
 
